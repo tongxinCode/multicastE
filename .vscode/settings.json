@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "types.h": "c",
+        "socket.h": "c",
+        "errno.h": "c",
+        "stdio.h": "c",
+        "in.h": "c",
+        "cstdio": "c",
+        "sendfile.h": "c",
+        "time.h": "c",
+        "tcp.h": "c"
+    }
+}
