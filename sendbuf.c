@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/time.h>
-#include<sys/mman.h>//mmap()
+#include <sys/mman.h> //mmap()
 
 
 #define MYPORT 8887

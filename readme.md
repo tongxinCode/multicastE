@@ -11,5 +11,5 @@
         b.do the less things in the loop , get the more rate
         c.use mmap at least
         d.use sendfile or splice for tcp;
-          use splice for tcp;
+          use mmap for udp;
         e.use the least kernal for MSG_ZEROCOPY

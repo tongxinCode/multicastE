@@ -4,7 +4,7 @@
  * use splice (splice用于在两个文件描述符中移动数据)
  * ssize_t splice(int fd_in, loff_t *off_in, int fd_out, loff_t *off_out, size_t len, unsigned int flags);
  * splice调用利用了Linux提出的管道缓冲区机制， 所以至少一个描述符要为管道
- *  <=10Gbps
+ * 
  */
 
 #define _GNU_SOURCE         /* See feature_test_macros(7) */
@@ -50,7 +50,7 @@ int main(int argc, char const *argv[])
     dstaddr.sin_port = htons(MYPORT);
     dstaddr.sin_addr.s_addr = inet_addr(DSTIP);
     int dstlen = sizeof(dstaddr);
-    // tcp--connect sendfile
+    // tcp--connect
     int res = connect(socket_fd,(struct sockaddr*)&dstaddr,sizeof(dstaddr));
     if(res<0)
         ERR_EXIT("socket error");
@@ -65,7 +65,7 @@ int main(int argc, char const *argv[])
     int file_fd;
     int n;//the number read
     off_t offset = 0;
-    file_fd = open("./data64KB", O_RDONLY);
+    file_fd = open("./data1MB", O_RDONLY);
     if(file_fd < 0)
         ERR_EXIT("open error");
     
