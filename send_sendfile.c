@@ -1,9 +1,9 @@
 /**
  * sendfile
  * just used in tcp
- * use sendfile
+ * use sendfile (sendfile只适用于将数据从文件拷贝到套接字)
  * ssize_t sendfile(int out_fd, int in_fd, off_t *offset, size_t count);
- * 35.57597 Gbps 28.81260 Gbps send && receive
+ * 20-40Gbps send && receive
  */
 
 #include <stdio.h>
@@ -18,6 +18,7 @@
 #include <sys/time.h>
 #include <sys/sendfile.h>
 #include <fcntl.h>
+
 /**
  * use tcp_cork
  * this modification may be useful in WWW、FTP or file-transfer by Nagle mode
@@ -26,7 +27,7 @@
 */
 
 #define MYPORT 8887
-#define MAXBUF 16*8*1024
+#define MAXLEN 131072
 
 char *DSTIP = "127.0.0.1";
 
@@ -80,7 +81,7 @@ int main(int argc, char const *argv[])
     int fd;
     int n;//the number read
     off_t offset = 0;
-    fd = open("/opt/c_transfer_udp/data", O_RDONLY);
+    fd = open("./data1MB", O_RDONLY);
     if(fd < 0)
         ERR_EXIT("open error");
     while (1)
@@ -97,7 +98,7 @@ int main(int argc, char const *argv[])
         sendto(sock, buf, n, 0,
                 (struct sockaddr *)&dstaddr, dstlen);
         */
-        n = sendfile(sock, fd, &offset, MAXBUF);
+        n = sendfile(sock, fd, &offset, MAXLEN);
         if(n == 0)
             ERR_EXIT("send end or error");
         // snapshot timer

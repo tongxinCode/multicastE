@@ -8,6 +8,9 @@
         "cstdio": "c",
         "sendfile.h": "c",
         "time.h": "c",
-        "tcp.h": "c"
+        "tcp.h": "c",
+        "fcntl.h": "c",
+        "string.h": "c",
+        "unistd.h": "c"
     }
 }

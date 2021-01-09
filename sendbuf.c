@@ -33,7 +33,7 @@ void readfile(char * buf)
     FILE *fp;
 
     // open file
-    fp = fopen("/opt/c_transfer_udp/data", "rb");
+    fp = fopen("./data", "rb");
 
     // read data
     fgets(buf, MAXBUF, fp);

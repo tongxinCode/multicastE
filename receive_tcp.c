@@ -1,3 +1,8 @@
+/**
+ * receive
+ * just used in tcp
+ * 
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>

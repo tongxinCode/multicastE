@@ -1,6 +1,6 @@
 temp:
-	rm -rf *.o sendfile receive_tcp
-	gcc -o sendfile sendfile.c
+	rm -rf *.o send_sendfile receive_tcp
+	gcc -o send_sendfile send_sendfile.c
 	gcc -o receive_tcp receive_tcp.c
 
 all:
@@ -17,4 +17,4 @@ receive:
 	gcc -o receive receive.c
 
 clean:
-	rm -rf *.o sendbuf receive sendfile
+	rm -rf *.o sendbuf receive sendfile send_sendfile send_splice receive_tcp receive_udp
