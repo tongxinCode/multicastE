@@ -1,20 +1,23 @@
-temp:
-	rm -rf *.o send_splice receive_udp
-	gcc -o send_splice send_splice.c
-	gcc -o receive_udp receive_udp.c
+main:
+	rm -f muticastE
+	g++ *.cpp *.c -o muticastE
 
-all:
-	gcc -o sendbuf sendbuf.c
-	gcc -o receive receive.c
+test:
+	rm -f *.o *.i *.S
+	rm -f muticastE
+	g++ -E send.cpp -o send.i 
+	g++ -S send.i -o send.S
+	g++ -c send.S -o send.o 
 
-sendbuf:
-	gcc -o sendbuf sendbuf.c
+	g++ -E recv.cpp -o recv.i 
+	g++ -S recv.i -o recv.S
+	g++ -c recv.S -o recv.o 
 
-sendfile:
-	gcc -o sendfile sendfile.c
+	g++ -E main.cpp -o main.i 
+	g++ -S main.i -o main.S
+	g++ -c main.S -o main.o 
 
-receive:
-	gcc -o receive receive.c
+	g++ -L. main.o -o muticastE -lsend -lrecv
 
 clean:
-	rm -rf *.o sendbuf receive sendfile send_sendfile send_splice receive_tcp receive_udp
+	rm -f *.o *.i *.S
