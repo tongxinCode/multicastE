@@ -44,6 +44,9 @@
         "type_traits": "cpp",
         "utility": "cpp",
         "typeinfo": "cpp",
-        "string": "cpp"
+        "string": "cpp",
+        "regex": "cpp",
+        "bitset": "cpp",
+        "ctime": "cpp"
     }
 }

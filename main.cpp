@@ -11,7 +11,7 @@
 #include <linux/if.h>
 #include <ifaddrs.h>
 #include <arpa/inet.h> 
-#include <regex.h>
+#include <regex>
 #include <string.h>
 #include "error.h"
 
@@ -84,7 +84,7 @@ int check_nic(const char* if_name)
 void split_arg(std::string info, std::string address, uint port)
 {
     int pos = -1;
-    info.find_first_of(':', pos);
+    pos = info.find_first_of(":", 0);
     if(pos == -1)
     {
         address = info;
@@ -93,6 +93,7 @@ void split_arg(std::string info, std::string address, uint port)
         address = info.substr(0, pos);
         port = atoi(info.substr(pos + 1, info.length() - pos).c_str());
     }
+    // std::cout<< address << " " << port << std::endl;
 }
 
 /**
@@ -107,10 +108,10 @@ void parse_arg(int argc, char *argv[], sendConn sc, recvConn rc)
     cmd.add<std::string>("source", 'S', "the source ip address", false, "");
     cmd.parse_check(argc, argv);
     // ~
-    std::cout << cmd.get<std::string>("local") << " "
-		<< cmd.get<std::string>("sendinfo") << " "
-		<< cmd.get<std::string>("recvinfo") <<  " "
-		<< cmd.get<std::string>("source") << std::endl;
+    // std::cout << cmd.get<std::string>("local") << " "
+	// 	<< cmd.get<std::string>("sendinfo") << " "
+	// 	<< cmd.get<std::string>("recvinfo") <<  " "
+	// 	<< cmd.get<std::string>("source") << std::endl;
     split_arg(cmd.get<std::string>("local"), sc.local_address, sc.local_port);
     split_arg(cmd.get<std::string>("local"), rc.local_address, rc.local_port);
     split_arg(cmd.get<std::string>("sendinfo"), sc.target_address, sc.target_port);
@@ -121,45 +122,28 @@ void parse_arg(int argc, char *argv[], sendConn sc, recvConn rc)
 /**
  * check the ip property
  */
-bool check_ip(const char* address)
+bool check_ip(std::string address)
 {
-    regex_t reg;
-    regmatch_t pmatch;
-    const char ip_pattern[] = "((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})(/.((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})){3}";
-    regcomp(&reg, ip_pattern, REG_EXTENDED);
-    int status = regexec(&reg, address, 1, &pmatch, 0);
-    /* 匹配正则表达式，注意regexec()函数一次只能匹配一个，不能连续匹配，网上很多示例并没有说明这一点 */
-    if(status == REG_NOMATCH)
-    {
-        printf("IP ADDRESS ERROR\n");
-    	regfree(&reg);
-        return false;
-    }
-	regfree(&reg);
-    return true;
+    std::regex ip_pattern("((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})(.((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})){3}");
+    std::smatch result;
+    bool ret = std::regex_match(address, result, ip_pattern);
+    return ret;
 }
 
 /**
  * check ip is ASM or SSM type
  */
-int check_type(const char* address)
+int check_type(std::string address)
 {
-    regex_t reg;
-    regmatch_t pmatch;
-    const char SSM_pattern[] = "232(/.((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})){3}";
-    regcomp(&reg, SSM_pattern, REG_EXTENDED);
-    int status = regexec(&reg, address, 1, &pmatch, 0);
-    if(status == REG_NOERROR)
+    std::regex SSM_pattern("232(.((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})){3}");
+    std::smatch result;
+    if(std::regex_match(address, result, SSM_pattern))
     {
-	    regfree(&reg);
         return 2;
     }
-    const char ASM_pattern[] = "2((2[4-9])|(3[0-9]))(/.((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})){3}";
-    regcomp(&reg, ASM_pattern, REG_EXTENDED);
-    status = regexec(&reg, address, 1, &pmatch, 0);
-    if(status == REG_NOERROR)
+    std::regex ASM_pattern("2((2[4-9])|(3[0-9]))(.((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})){3}");
+    if(std::regex_match(address, result, ASM_pattern))
     {
-	    regfree(&reg);
         return 1;
     }
     return 0;
@@ -183,29 +167,29 @@ bool check_arg(sendConn sc, recvConn rc)
     bool res;
     if(sc.target_address != "")
     {
-        if(check_ip(sc.target_address.c_str()))
+        if(check_ip(sc.target_address))
             if(check_nic(sc.local_address.c_str()))
                 if(check_port(sc.target_port))
                 {
                     res = true;
-                    sc.state = check_type(sc.target_address.c_str());
+                    sc.state = check_type(sc.target_address);
                 }
         else
             ERR_EXIT("ARGUEMENTS CHECK ERROR");
     }
     if(rc.target_address != "")
     {
-        if(check_ip(rc.target_address.c_str()))
+        if(check_ip(rc.target_address))
             if(check_nic(rc.local_address.c_str()))
                 if(check_port(rc.target_port))
                 {
                     res = res & true;
                     if (rc.source_address != "")
-                        if (check_ip(rc.source_address.c_str()))
+                        if (check_ip(rc.source_address))
                             res = res & true;
                         else
                             ERR_EXIT("ARGUEMENTS CHECK ERROR");
-                    rc.state = check_type(rc.target_address.c_str());
+                    rc.state = check_type(rc.target_address);
                 }    
         else
             ERR_EXIT("ARGUEMENTS CHECK ERROR");

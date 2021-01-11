@@ -1,6 +1,6 @@
 main:
 	rm -f muticastE
-	g++ *.cpp *.c -o muticastE
+	g++ *.cpp *.c -o muticastE -std=c++11
 
 test:
 	rm -f *.o *.i *.S
