@@ -9,7 +9,8 @@
                 "/usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../include/c++/4.8.5/backward",
                 "/usr/lib/gcc/x86_64-redhat-linux/4.8.5/include",
                 "/usr/local/include",
-                "/usr/include"
+                "/usr/include",
+                "/usr/local/lib/"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

@@ -3,7 +3,7 @@
  */
 #include "recv.h"
 
-void create_recv_socket(int sock, struct sockaddr_in revaddr, const char* target_addr, uint target_port)
+void create_recv_socket(int& sock, struct sockaddr_in &revaddr, const char* target_addr, uint target_port)
 {
     if ((sock = socket(PF_INET, SOCK_DGRAM, 0)) < 0)
         ERR_EXIT("socket error");
@@ -17,7 +17,7 @@ void create_recv_socket(int sock, struct sockaddr_in revaddr, const char* target
         ERR_EXIT("bind error");
 }
 
-void recv_m(int sock, struct sockaddr_in peeraddr, socklen_t peerlen, const char* local_addr, byte* buffer, int buffer_length)
+void recv_m(int& sock, struct sockaddr_in &peeraddr, socklen_t &peerlen, const char* local_addr, byte* &buffer, int buffer_length)
 {
     // timer part
     struct timeval t1, t2;

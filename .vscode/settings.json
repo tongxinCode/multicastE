@@ -47,6 +47,16 @@
         "string": "cpp",
         "regex": "cpp",
         "bitset": "cpp",
-        "ctime": "cpp"
+        "ctime": "cpp",
+        "atomic": "cpp",
+        "chrono": "cpp",
+        "complex": "cpp",
+        "list": "cpp",
+        "mutex": "cpp",
+        "ratio": "cpp",
+        "system_error": "cpp",
+        "cinttypes": "cpp",
+        "typeindex": "cpp",
+        "cstddef": "cpp"
     }
 }

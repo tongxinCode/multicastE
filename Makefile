@@ -1,10 +1,10 @@
 main:
-	rm -f muticastE
-	g++ *.cpp *.c -o muticastE -std=c++11
+	rm -f multicastE
+	g++ *.cpp -o multicastE -std=c++11 -lboost_regex
 
 test:
 	rm -f *.o *.i *.S
-	rm -f muticastE
+	rm -f multicastE
 	g++ -E send.cpp -o send.i 
 	g++ -S send.i -o send.S
 	g++ -c send.S -o send.o 
@@ -17,7 +17,7 @@ test:
 	g++ -S main.i -o main.S
 	g++ -c main.S -o main.o 
 
-	g++ -L. main.o -o muticastE -lsend -lrecv
+	g++ -L. main.o -o multicastE -lsend -lrecv
 
 clean:
 	rm -f *.o *.i *.S

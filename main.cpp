@@ -10,8 +10,8 @@
 #include <sys/socket.h>
 #include <linux/if.h>
 #include <ifaddrs.h>
-#include <arpa/inet.h> 
-#include <regex>
+#include <arpa/inet.h>
+#include <boost/regex.hpp> // **
 #include <string.h>
 #include "error.h"
 
@@ -19,6 +19,10 @@
 #define UDP     0
 #define ASM     1
 #define SSM     2
+
+#define SEND_FIT_BUF_LEN 1472
+#define SEND_MAX_BUF_LEN 65507
+#define RECV_MAX_BUF_LEN 131072
 
 typedef struct sendConn
 {
@@ -47,7 +51,7 @@ typedef struct recvConn
  * get local nic interface
  * name and address
  */
-int check_nic(const char* if_name)
+int check_nic(const char* address)
 {
     struct ifaddrs *ifa = NULL, *ifList;  
     if (getifaddrs(&ifList) < 0) {
@@ -55,7 +59,9 @@ int check_nic(const char* if_name)
     }
     for (ifa = ifList; ifa != NULL; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr->sa_family == AF_INET) {
-            if (strcmp(ifa->ifa_name, if_name) ==0) {
+            struct sockaddr_in *sin = NULL;
+            sin = (struct sockaddr_in *)ifa->ifa_addr;
+            if (strcmp(inet_ntoa(sin->sin_addr), address) ==0) {
                 if (!(ifa->ifa_flags & IFF_UP)) {
                     printf("DEVICE_DOWN\r\n");
                     freeifaddrs(ifList);
@@ -66,13 +72,13 @@ int check_nic(const char* if_name)
                     freeifaddrs(ifList);
                     return 2;
                 }
-                printf("DEVICE_LINKED\r\n");
+                printf("DEVICE_LINKED. The interface is %s.\r\n", ifa->ifa_name);
                 freeifaddrs(ifList);
                 return 3;
             }
         }  
     }  
-    printf("%s", stderr, "DEVICE_NONE\r\n");
+    printf("DEVICE_NONE\r\n");
     freeifaddrs(ifList);
     return 0;
 }
@@ -81,25 +87,26 @@ int check_nic(const char* if_name)
  * split the address and port 
  * from 229.0.0.1:8888 to 229.0.0.1 8888
  */
-void split_arg(std::string info, std::string address, uint port)
+void split_arg(std::string info, std::string &address, uint &port)
 {
     int pos = -1;
     pos = info.find_first_of(":", 0);
     if(pos == -1)
     {
-        address = info;
+        address.assign(info);
     }else
     {
-        address = info.substr(0, pos);
+        address.assign(info.substr(0, pos));
         port = atoi(info.substr(pos + 1, info.length() - pos).c_str());
     }
+    // ~
     // std::cout<< address << " " << port << std::endl;
 }
 
 /**
  * parse the parameters
  */
-void parse_arg(int argc, char *argv[], sendConn sc, recvConn rc)
+void parse_arg(int argc, char *argv[], sendConn &sc, recvConn &rc)
 {
     cmdline::parser cmd;
     cmd.add<std::string>("local", 'l', "local ip address", false, "");
@@ -117,6 +124,9 @@ void parse_arg(int argc, char *argv[], sendConn sc, recvConn rc)
     split_arg(cmd.get<std::string>("sendinfo"), sc.target_address, sc.target_port);
     split_arg(cmd.get<std::string>("recvinfo"), rc.target_address, rc.target_port);
     rc.source_address = cmd.get<std::string>("source");
+    // ~
+    // printf("%s\n",sc.target_address.c_str());
+    // printf("%d\n",sc.target_port);
 }
 
 /**
@@ -124,9 +134,10 @@ void parse_arg(int argc, char *argv[], sendConn sc, recvConn rc)
  */
 bool check_ip(std::string address)
 {
-    std::regex ip_pattern("((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})(.((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})){3}");
-    std::smatch result;
-    bool ret = std::regex_match(address, result, ip_pattern);
+    boost::cmatch what;
+    boost::regex ip_pattern("((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})(\\.((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})){3}");
+    bool ret = boost::regex_match(address.c_str(), what, ip_pattern);
+    if(ret == false) ERR_EXIT("Wrong IP Address.");
     return ret;
 }
 
@@ -135,14 +146,14 @@ bool check_ip(std::string address)
  */
 int check_type(std::string address)
 {
-    std::regex SSM_pattern("232(.((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})){3}");
-    std::smatch result;
-    if(std::regex_match(address, result, SSM_pattern))
+    boost::cmatch what;
+    boost::regex SSM_pattern("232(\\.((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})){3}");
+    if(boost::regex_match(address.c_str(), what, SSM_pattern))
     {
         return 2;
     }
-    std::regex ASM_pattern("2((2[4-9])|(3[0-9]))(.((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})){3}");
-    if(std::regex_match(address, result, ASM_pattern))
+    boost::regex ASM_pattern("2((2[4-9])|(3[0-9]))(\\.((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})){3}");
+    if(boost::regex_match(address.c_str(), what, ASM_pattern))
     {
         return 1;
     }
@@ -162,10 +173,10 @@ bool check_port(int port)
 /**
  * check the property
  */
-bool check_arg(sendConn sc, recvConn rc)
+bool check_arg(sendConn &sc, recvConn &rc)
 {
     bool res;
-    if(sc.target_address != "")
+    if(!sc.target_address.empty())
     {
         if(check_ip(sc.target_address))
             if(check_nic(sc.local_address.c_str()))
@@ -177,7 +188,7 @@ bool check_arg(sendConn sc, recvConn rc)
         else
             ERR_EXIT("ARGUEMENTS CHECK ERROR");
     }
-    if(rc.target_address != "")
+    if(!rc.target_address.empty())
     {
         if(check_ip(rc.target_address))
             if(check_nic(rc.local_address.c_str()))
@@ -201,14 +212,17 @@ int main(int argc, char *argv[])
 {
     sendConn sc;
     sc.state = -1;
+    sc.buffer_length = SEND_FIT_BUF_LEN;
     sc.buffer = (byte *)malloc(sc.buffer_length*sizeof(byte));
     recvConn rc;
     rc.state = -1;
+    rc.buffer_length = RECV_MAX_BUF_LEN;
     rc.buffer = (byte *)malloc(sc.buffer_length*sizeof(byte));
     parse_arg(argc, argv, sc, rc);
     check_arg(sc, rc);
-    printf("%d\n", sc.state);
-    printf("%d\n", rc.state);
+    // ~
+    // printf("%d\n", sc.state);
+    // printf("%d\n", rc.state);
     if(sc.state != -1)
     {
         int sock_send_fd;
@@ -220,7 +234,7 @@ int main(int argc, char *argv[])
     if(rc.state != -1)
     {
         int sock_rev_fd;
-        int peer_len;
+        uint peer_len;
         sockaddr_in rev_addr;
         sockaddr_in peer_addr;
         create_recv_socket(sock_rev_fd, rev_addr, rc.target_address.c_str(), rc.target_port);

@@ -3,7 +3,7 @@
  */
 #include "send.h"
 
-void create_send_socket(int sock, int dstlen, struct sockaddr_in dstaddr, const char* target_addr, uint target_port)
+void create_send_socket(int& sock, int dstlen, struct sockaddr_in &dstaddr, const char* target_addr, uint target_port)
 {
     if ((sock = socket(PF_INET, SOCK_DGRAM, 0)) < 0)
         ERR_EXIT("socket error");
@@ -12,9 +12,10 @@ void create_send_socket(int sock, int dstlen, struct sockaddr_in dstaddr, const 
     dstaddr.sin_port = htons(target_port);
     dstaddr.sin_addr.s_addr = inet_addr(target_addr);
     dstlen = sizeof(dstaddr);
+    printf("发送到%s的%d端口\n", target_addr, target_port);
 }
 
-void send_m(int sock, int dstlen, struct sockaddr_in dstaddr, const char* local_addr, byte* buffer, int buffer_length)
+void send_m(int& sock, int dstlen, struct sockaddr_in &dstaddr, const char* local_addr, byte* &buffer, int buffer_length)
 {
     // timer part
     struct timeval t1, t2;

@@ -20,12 +20,12 @@ extern "C" {
 /**
  * create socket
  */
-void create_send_socket(int sock, int dstlen, struct sockaddr_in dstaddr, const char* target_addr, uint target_port);
+void create_send_socket(int& sock, int dstlen, struct sockaddr_in &dstaddr, const char* target_addr, uint target_port);
 
 /**
  * send loop
  */
-void send_m(int sock, int dstlen, struct sockaddr_in dstaddr, const char* local_addr, byte* buffer, int buffer_length);
+void send_m(int& sock, int dstlen, struct sockaddr_in &dstaddr, const char* local_addr, byte* &buffer, int buffer_length);
 
 #ifdef  __cplusplus
 }

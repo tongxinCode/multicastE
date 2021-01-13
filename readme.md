@@ -2,7 +2,10 @@
 
 used to test the extreme rate in the network
 
-tested successfully in Linux master 3.10.0-1062.12.1.el7.x86_64.
+tested successfully in 
+    Linux master 3.10.0-1062.12.1.el7.x86_64.
+    gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-36)
+    boost c++ 1.75
 
 ## notes
 
