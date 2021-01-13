@@ -3,10 +3,11 @@
  */
 #include "send.h"
 
-void create_send_socket(int& sock, int dstlen, struct sockaddr_in &dstaddr, const char* target_addr, uint target_port)
+void create_send_socket(int& sock, int &dstlen, struct sockaddr_in &dstaddr, const char* target_addr, uint target_port)
 {
     if ((sock = socket(PF_INET, SOCK_DGRAM, 0)) < 0)
-        ERR_EXIT("socket error");
+        ERR_EXIT("Socket Error");
+    /* Construct local address structure */
     memset(&dstaddr, 0, sizeof(dstaddr));
     dstaddr.sin_family = AF_INET;
     dstaddr.sin_port = htons(target_port);
@@ -28,9 +29,10 @@ void send_m(int& sock, int dstlen, struct sockaddr_in &dstaddr, const char* loca
     gettimeofday(&t1, NULL);
     while (1)
     {
-        sendto(sock, buffer, n, 0,
+        n = sendto(sock, buffer, buffer_length, 0,
                 (struct sockaddr *)&dstaddr, dstlen);
-        
+        if(n <= 0)
+            ERR_EXIT("Send error.");
         // snapshot timer
         gettimeofday(&t2, NULL);
         // compute and print the elapsed time in millisec
@@ -41,7 +43,7 @@ void send_m(int& sock, int dstlen, struct sockaddr_in &dstaddr, const char* loca
         packetsum += n;
         // printf("total send rate %5.5f MB/s  ", packetsum*1000/elapsedTime/1024/1024);
         printf("band-width %5.5f Gbps \n", packetsum*1000/elapsedTime/1024/1024/1024*8);
-        memset(buffer, 0 , sizeof(buffer));
+        memset(buffer, 0 , buffer_length);
     }
     // close socket
     close(sock);

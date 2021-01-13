@@ -5,16 +5,19 @@
 
 void create_recv_socket(int& sock, struct sockaddr_in &revaddr, const char* target_addr, uint target_port)
 {
+    int buffer_len = 65536*10;
     if ((sock = socket(PF_INET, SOCK_DGRAM, 0)) < 0)
-        ERR_EXIT("socket error");
+        ERR_EXIT("Socket Error");
+    if (setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &buffer_len, 4)!=0)
+        ERR_EXIT("Setsockopt Error.");
     memset(&revaddr, 0, sizeof(revaddr));
     revaddr.sin_family = AF_INET;
     revaddr.sin_port = htons(target_port);
     revaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    printf("监听%d端口\n", target_port);
+    // bind
     if (bind(sock, (struct sockaddr *)&revaddr, sizeof(revaddr)) < 0)
         ERR_EXIT("bind error");
+    printf("监听%d端口\n", target_port);
 }
 
 void recv_m(int& sock, struct sockaddr_in &peeraddr, socklen_t &peerlen, const char* local_addr, byte* &buffer, int buffer_length)
@@ -30,19 +33,17 @@ void recv_m(int& sock, struct sockaddr_in &peeraddr, socklen_t &peerlen, const c
     // start timer
     gettimeofday(&t1, NULL);
 
+    peerlen = sizeof(peeraddr);
     // socket loop
     while (1)
     {
-        peerlen = sizeof(peeraddr);
         n = recvfrom(sock, buffer, buffer_length, 0,
                      (struct sockaddr *)&peeraddr, &peerlen);
         if (n <= 0)
         {
-
             if (errno == EINTR)
                 continue;
-
-            ERR_EXIT("recvfrom error");
+            ERR_EXIT("Recvfrom Error");
         }
         else if (n > 0)
         {
@@ -60,7 +61,7 @@ void recv_m(int& sock, struct sockaddr_in &peeraddr, socklen_t &peerlen, const c
             // printf("total receive rate %5.5f MB/s  ", packetsum*1000/elapsedTime/1024/1024);
             printf("band-width %5.5f Gbps \n", packetsum*1000/elapsedTime/1024/1024/1024*8);
         }
-        memset(buffer, 0, sizeof(buffer));
+        memset(buffer, 0, buffer_length);
     }
     close(sock);
 }

@@ -214,10 +214,12 @@ int main(int argc, char *argv[])
     sc.state = -1;
     sc.buffer_length = SEND_FIT_BUF_LEN;
     sc.buffer = (byte *)malloc(sc.buffer_length*sizeof(byte));
+    memset(sc.buffer, 0, sc.buffer_length);
     recvConn rc;
     rc.state = -1;
     rc.buffer_length = RECV_MAX_BUF_LEN;
-    rc.buffer = (byte *)malloc(sc.buffer_length*sizeof(byte));
+    rc.buffer = (byte *)malloc(rc.buffer_length*sizeof(byte));
+    memset(rc.buffer, 0, rc.buffer_length);
     parse_arg(argc, argv, sc, rc);
     check_arg(sc, rc);
     // ~
@@ -231,7 +233,7 @@ int main(int argc, char *argv[])
         create_send_socket(sock_send_fd, dst_len, dst_addr, sc.target_address.c_str(), sc.target_port);
         send_m(sock_send_fd, dst_len, dst_addr, sc.local_address.c_str(), sc.buffer, sc.buffer_length);
     }
-    if(rc.state != -1)
+    if(rc.state == 0)
     {
         int sock_rev_fd;
         uint peer_len;
@@ -239,6 +241,14 @@ int main(int argc, char *argv[])
         sockaddr_in peer_addr;
         create_recv_socket(sock_rev_fd, rev_addr, rc.target_address.c_str(), rc.target_port);
         recv_m(sock_rev_fd, peer_addr, peer_len, rc.local_address.c_str(), rc.buffer, rc.buffer_length);
+    }
+    else if(rc.state == 1)
+    {
+
+    }
+    else if(rc.state == 2)
+    {
+        
     }
     return 0;
 }
