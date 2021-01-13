@@ -26,6 +26,7 @@
 
 typedef struct sendConn
 {
+    bool extreme;
     int state;
     std::string local_address;
     std::string local_ifiname;
@@ -121,6 +122,7 @@ void parse_arg(int argc, char *argv[], sendConn &sc, recvConn &rc)
     cmd.add<int>("bufferlength", 'p', "the payload size of sending buffer", false, SEND_FIT_BUF_LEN);
     cmd.add<int>("intervalms", 'i', "the interval length (ms) of sleep in one loop", false, 1000);
     cmd.add<int>("intervalus", 'u', "the interval length (us) of sleep in one loop", false, 1000000);
+    cmd.add<bool>("ExtremeTest", 'E', "try the best to transfer in one loop", false, false);
     cmd.parse_check(argc, argv);
     // ~
     // std::cout << cmd.get<std::string>("local") << " "
@@ -135,6 +137,7 @@ void parse_arg(int argc, char *argv[], sendConn &sc, recvConn &rc)
     sc.buffer_length = cmd.get<int>("bufferlength");
     sc.interval_ms = cmd.get<int>("intervalms");
     sc.interval_us = cmd.get<int>("intervalus");
+    sc.extreme = cmd.get<bool>("ExtremeTest");
     // ~
     // printf("%s\n",sc.target_address.c_str());
     // printf("%d\n",sc.target_port);
@@ -229,8 +232,7 @@ void init_config(sendConn &sc, recvConn &rc)
     rc.buffer_length = RECV_MAX_BUF_LEN;
     rc.buffer = (byte *)malloc(rc.buffer_length*sizeof(byte));
     memset(rc.buffer, 0, rc.buffer_length);
-    if(!sc.interval_us)
-        sc.interval_us = 1000 * sc.interval_ms;
+    sc.interval_us = 1000 * sc.interval_ms;
 }
 
 int main(int argc, char *argv[])
@@ -249,7 +251,10 @@ int main(int argc, char *argv[])
         int dst_len;
         sockaddr_in dst_addr;
         create_send_socket(sock_send_fd, dst_len, dst_addr, sc.target_address.c_str(), sc.target_port, sc.local_ifiname.c_str());
-        send_m(sock_send_fd, dst_len, dst_addr, sc.buffer, sc.buffer_length, sc.interval_us);
+        if(!sc.extreme)
+            send_m(sock_send_fd, dst_len, dst_addr, sc.buffer, sc.buffer_length, sc.interval_us);
+        else
+            send_m_E(sock_send_fd, dst_len, dst_addr, sc.buffer, sc.buffer_length, sc.interval_us);
     }
     if(rc.state == 0)
     {

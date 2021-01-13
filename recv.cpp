@@ -5,7 +5,7 @@
 
 void recv_init(int& sock, const char* local_addr)
 {
-    int buffer_len = 65536*10;
+    int buffer_len = 65536*32;
     if (setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &buffer_len, 4)!=0)
         ERR_EXIT("Setsockopt Error.");
     if(setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, local_addr, strlen(local_addr)) != 0)

@@ -33,6 +33,12 @@ void create_send_socket(int& sock, int &dstlen, struct sockaddr_in &dstaddr, con
  */
 void send_m(int& sock, int dstlen, struct sockaddr_in &dstaddr, byte* &buffer, int buffer_length, int interval_us);
 
+/**
+ * send loop Extremely
+ */
+void send_m_E(int& sock, int dstlen, struct sockaddr_in &dstaddr, byte* &buffer, int buffer_length, int interval_us);
+
+
 #ifdef  __cplusplus
 }
 #endif  /* end of __cplusplus */
