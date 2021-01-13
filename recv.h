@@ -20,18 +20,19 @@ extern "C" {
 
 /**
  * init some options
+ * need root privilege
  */
-void init();
+void recv_init(int& sock, const char* local_addr);
 
 /**
  * recv loop
  */
-void recv_m(int& sock, struct sockaddr_in &peeraddr, socklen_t &peerlen, const char* local_addr, byte* &buffer, int buffer_length);
+void recv_m(int& sock, struct sockaddr_in &peeraddr, socklen_t &peerlen, byte* &buffer, int buffer_length);
 
 /**
  * create recv socket
  */
-void create_recv_socket(int& sock, struct sockaddr_in &revaddr, const char* target_addr, uint target_port);
+void create_recv_socket(int& sock, struct sockaddr_in &revaddr, const char* target_addr, uint target_port, const char* local_addr);
 
 /**
  * join asm

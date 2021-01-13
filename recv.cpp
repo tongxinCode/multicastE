@@ -3,13 +3,21 @@
  */
 #include "recv.h"
 
-void create_recv_socket(int& sock, struct sockaddr_in &revaddr, const char* target_addr, uint target_port)
+void recv_init(int& sock, const char* local_addr)
 {
     int buffer_len = 65536*10;
-    if ((sock = socket(PF_INET, SOCK_DGRAM, 0)) < 0)
-        ERR_EXIT("Socket Error");
     if (setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &buffer_len, 4)!=0)
         ERR_EXIT("Setsockopt Error.");
+    if(setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, local_addr, strlen(local_addr)) != 0)
+        ERR_EXIT("Bind to local device error.");
+}
+
+void create_recv_socket(int& sock, struct sockaddr_in &revaddr, const char* target_addr, uint target_port, const char* local_addr)
+{
+    if ((sock = socket(PF_INET, SOCK_DGRAM, 0)) < 0)
+        ERR_EXIT("Socket Error");
+    recv_init(sock, local_addr);
+    
     memset(&revaddr, 0, sizeof(revaddr));
     revaddr.sin_family = AF_INET;
     revaddr.sin_port = htons(target_port);
@@ -20,7 +28,7 @@ void create_recv_socket(int& sock, struct sockaddr_in &revaddr, const char* targ
     printf("监听%d端口\n", target_port);
 }
 
-void recv_m(int& sock, struct sockaddr_in &peeraddr, socklen_t &peerlen, const char* local_addr, byte* &buffer, int buffer_length)
+void recv_m(int& sock, struct sockaddr_in &peeraddr, socklen_t &peerlen, byte* &buffer, int buffer_length)
 {
     // timer part
     struct timeval t1, t2;

@@ -28,17 +28,21 @@ typedef struct sendConn
 {
     int state;
     std::string local_address;
+    std::string local_ifiname;
     uint local_port;
     std::string target_address;
     uint target_port;
     byte* buffer;
     int buffer_length;
+    int interval_ms;
+    int interval_us;
 }sendConn;
 
 typedef struct recvConn
 {
     int state;
     std::string local_address;
+    std::string local_ifiname;
     uint local_port;
     std::string target_address;
     std::string source_address;
@@ -51,7 +55,7 @@ typedef struct recvConn
  * get local nic interface
  * name and address
  */
-int check_nic(const char* address)
+int check_nic(const char* address, std::string &local_ifiname)
 {
     struct ifaddrs *ifa = NULL, *ifList;  
     if (getifaddrs(&ifList) < 0) {
@@ -72,6 +76,7 @@ int check_nic(const char* address)
                     freeifaddrs(ifList);
                     return 2;
                 }
+                local_ifiname.assign(ifa->ifa_name);
                 printf("DEVICE_LINKED. The interface is %s.\r\n", ifa->ifa_name);
                 freeifaddrs(ifList);
                 return 3;
@@ -109,10 +114,13 @@ void split_arg(std::string info, std::string &address, uint &port)
 void parse_arg(int argc, char *argv[], sendConn &sc, recvConn &rc)
 {
     cmdline::parser cmd;
-    cmd.add<std::string>("local", 'l', "local ip address", false, "");
+    cmd.add<std::string>("local", 'l', "local ip address", true, "");
     cmd.add<std::string>("sendinfo", 's', "the target ip muliticast address and port, e.g 229.0.0.1:8888", false, "");
     cmd.add<std::string>("recvinfo", 'r', "the source ip muliticast address and port, e.g 229.0.0.1:8888", false, "");
     cmd.add<std::string>("source", 'S', "the source ip address", false, "");
+    cmd.add<int>("bufferlength", 'p', "the payload size of sending buffer", false, SEND_FIT_BUF_LEN);
+    cmd.add<int>("intervalms", 'i', "the interval length (ms) of sleep in one loop", false, 1000);
+    cmd.add<int>("intervalus", 'u', "the interval length (us) of sleep in one loop", false, 1000000);
     cmd.parse_check(argc, argv);
     // ~
     // std::cout << cmd.get<std::string>("local") << " "
@@ -124,6 +132,9 @@ void parse_arg(int argc, char *argv[], sendConn &sc, recvConn &rc)
     split_arg(cmd.get<std::string>("sendinfo"), sc.target_address, sc.target_port);
     split_arg(cmd.get<std::string>("recvinfo"), rc.target_address, rc.target_port);
     rc.source_address = cmd.get<std::string>("source");
+    sc.buffer_length = cmd.get<int>("bufferlength");
+    sc.interval_ms = cmd.get<int>("intervalms");
+    sc.interval_us = cmd.get<int>("intervalus");
     // ~
     // printf("%s\n",sc.target_address.c_str());
     // printf("%d\n",sc.target_port);
@@ -173,13 +184,13 @@ bool check_port(int port)
 /**
  * check the property
  */
-bool check_arg(sendConn &sc, recvConn &rc)
+bool check_config(sendConn &sc, recvConn &rc)
 {
     bool res;
     if(!sc.target_address.empty())
     {
         if(check_ip(sc.target_address))
-            if(check_nic(sc.local_address.c_str()))
+            if(check_nic(sc.local_address.c_str(),sc.local_ifiname))
                 if(check_port(sc.target_port))
                 {
                     res = true;
@@ -191,7 +202,7 @@ bool check_arg(sendConn &sc, recvConn &rc)
     if(!rc.target_address.empty())
     {
         if(check_ip(rc.target_address))
-            if(check_nic(rc.local_address.c_str()))
+            if(check_nic(rc.local_address.c_str(),sc.local_ifiname))
                 if(check_port(rc.target_port))
                 {
                     res = res & true;
@@ -208,20 +219,27 @@ bool check_arg(sendConn &sc, recvConn &rc)
     return res;
 }
 
-int main(int argc, char *argv[])
+void init_config(sendConn &sc, recvConn &rc)
 {
-    sendConn sc;
     sc.state = -1;
-    sc.buffer_length = SEND_FIT_BUF_LEN;
+    // sc.buffer_length given in arguments or default
     sc.buffer = (byte *)malloc(sc.buffer_length*sizeof(byte));
     memset(sc.buffer, 0, sc.buffer_length);
-    recvConn rc;
     rc.state = -1;
     rc.buffer_length = RECV_MAX_BUF_LEN;
     rc.buffer = (byte *)malloc(rc.buffer_length*sizeof(byte));
     memset(rc.buffer, 0, rc.buffer_length);
+    if(!sc.interval_us)
+        sc.interval_us = 1000 * sc.interval_ms;
+}
+
+int main(int argc, char *argv[])
+{
+    sendConn sc;
+    recvConn rc;
     parse_arg(argc, argv, sc, rc);
-    check_arg(sc, rc);
+    init_config(sc, rc);
+    check_config(sc, rc);
     // ~
     // printf("%d\n", sc.state);
     // printf("%d\n", rc.state);
@@ -230,8 +248,8 @@ int main(int argc, char *argv[])
         int sock_send_fd;
         int dst_len;
         sockaddr_in dst_addr;
-        create_send_socket(sock_send_fd, dst_len, dst_addr, sc.target_address.c_str(), sc.target_port);
-        send_m(sock_send_fd, dst_len, dst_addr, sc.local_address.c_str(), sc.buffer, sc.buffer_length);
+        create_send_socket(sock_send_fd, dst_len, dst_addr, sc.target_address.c_str(), sc.target_port, sc.local_ifiname.c_str());
+        send_m(sock_send_fd, dst_len, dst_addr, sc.buffer, sc.buffer_length, sc.interval_us);
     }
     if(rc.state == 0)
     {
@@ -239,8 +257,8 @@ int main(int argc, char *argv[])
         uint peer_len;
         sockaddr_in rev_addr;
         sockaddr_in peer_addr;
-        create_recv_socket(sock_rev_fd, rev_addr, rc.target_address.c_str(), rc.target_port);
-        recv_m(sock_rev_fd, peer_addr, peer_len, rc.local_address.c_str(), rc.buffer, rc.buffer_length);
+        create_recv_socket(sock_rev_fd, rev_addr, rc.target_address.c_str(), rc.target_port, rc.local_ifiname.c_str());
+        recv_m(sock_rev_fd, peer_addr, peer_len, rc.buffer, rc.buffer_length);
     }
     else if(rc.state == 1)
     {
@@ -248,7 +266,7 @@ int main(int argc, char *argv[])
     }
     else if(rc.state == 2)
     {
-        
+
     }
     return 0;
 }
